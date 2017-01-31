@@ -1,0 +1,77 @@
+#!/bin/bash
+
+####################################################################################
+# Written by: Matthew Bovolotto
+# Date: 2017/01/20
+# OC Transpo Time Finder
+####################################################################################
+
+stopNumber=$1
+routeNumber=$2
+
+if [[ -z "$stopNumber" ]]; then
+	echo "Stop Number: "
+	read stopNumber
+fi
+
+if [[ -z "$routeNumber" ]]; then
+	echo "Route Number: "
+	read routeNumber 
+fi
+
+validStop="$(awk -v stop="$stopNumber" -F "," '$2==stop {print $3}' ~/OCTranspo/OC/stops.txt)"
+if [[ -z "$validStop" ]]; then
+	echo "Invalid stop number!"
+	exit
+fi
+
+curl -s -d "appID="a53c2e58"&apiKey="9eaf264541013e4e6c2c040290dd0ec6"&stopNo=$stopNumber" https://api.octranspo1.com/v1.2/GetRouteSummaryForStop > .check.tmp
+validRoute="$(cat .check.tmp | xmllint --format - | grep -i RouteNo | sed -e 's/^.*>\([0-9]*\)<.*$/\1/g' | grep ^$routeNumber$)"
+if [[ -z "$validRoute" ]]; then
+        echo "Invalid Route number!"
+        exit
+fi
+
+#rm .check.tmp
+
+################################################################################
+# 
+#
+#
+################################################################################
+
+curl -s -d "appID="a53c2e58"&apiKey="9eaf264541013e4e6c2c040290dd0ec6"&stopNo=$stopNumber&routeNo=$routeNumber" https://api.octranspo1.com/v1.2/GetNextTripsForStop > .stop.tmp
+
+routeRunning="$(cat .stop.tmp | xmllint --format - | grep \<Trips/\>)"
+
+if [[ -n "$routeRunning" ]]; then
+	echo "Route is not running currently"
+	exit
+fi
+
+# cat stop.tmp | xmllint --format - | grep -i error | sed -e 's/^.*>\([0-9]*\)<.*$/\1/g'
+
+#Pass in the appID, apiKey, stop number and route number to the OC tranpo api, the api returns the next 3 times for that stop
+
+stopName="$(awk -v var="$stopNumber" -F "," '$2==var {print $3}' ~/OCTranspo/OC/stops.txt | sed -e 's/"//g' )"
+
+echo "Stop Name: $stopName"
+echo "Current Time: " # print the current time
+date +"%H:%M"
+
+echo "Next Busses: "
+cat .stop.tmp | xmllint --format - | grep -i adjustedscheduletime | sed -e 's/ *<\/*AdjustedScheduleTime>//g' > .time.tmp
+#rm .stop.tmp
+
+#print the scheduled delays into the time.tmp file
+
+adjustedTime[0]="$(awk -F "\t" 'NR == 1 {print $1}' .time.tmp)" #read the first line of the time.tmp file
+adjustedTime[1]="$(awk -F "\t" 'NR == 2 {print $1}' .time.tmp)" #..
+adjustedTime[2]="$(awk -F "\t" 'NR == 3 {print $1}' .time.tmp)" #..
+#rm .time.tmp
+
+echo "The next bus is in: ${adjustedTime[0]} minutes" #print the time until the next bus
+
+date -d "now ${adjustedTime[0]} minutes" +'%H:%M' #print the specific time of the next bus
+date -d "now ${adjustedTime[1]} minutes" +'%H:%M' #.. 
+date -d "now ${adjustedTime[2]} minutes" +'%H:%M' #..
