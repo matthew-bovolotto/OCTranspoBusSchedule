@@ -16,7 +16,7 @@ fi
 
 if [[ -z "$routeNumber" ]]; then
 	echo "Route Number: "
-	read routeNumber 
+	read routeNumber
 fi
 
 validStop="$(awk -v stop="$stopNumber" -F "," '$2==stop {print $3}' ~/OCTranspo/OC/stops.txt)"
@@ -25,7 +25,7 @@ if [[ -z "$validStop" ]]; then
 	exit
 fi
 
-curl -s -d "appID="a53c2e58"&apiKey="9eaf264541013e4e6c2c040290dd0ec6"&stopNo=$stopNumber" https://api.octranspo1.com/v1.2/GetRouteSummaryForStop > .check.tmp
+curl -s -k -d "appID=a53c2e58&apiKey=9eaf264541013e4e6c2c040290dd0ec6&stopNo=$stopNumber" https://api.octranspo1.com/v1.2/GetRouteSummaryForStop > .check.tmp
 validRoute="$(cat .check.tmp | xmllint --format - | grep -i RouteNo | sed -e 's/^.*>\([0-9]*\)<.*$/\1/g' | grep ^$routeNumber$)"
 if [[ -z "$validRoute" ]]; then
         echo "Invalid Route number!"
@@ -35,12 +35,12 @@ fi
 #rm .check.tmp
 
 ################################################################################
-# 
+#
 #
 #
 ################################################################################
 
-curl -s -d "appID="a53c2e58"&apiKey="9eaf264541013e4e6c2c040290dd0ec6"&stopNo=$stopNumber&routeNo=$routeNumber" https://api.octranspo1.com/v1.2/GetNextTripsForStop > .stop.tmp
+curl -s -k -d "appID=a53c2e58&apiKey=9eaf264541013e4e6c2c040290dd0ec6&stopNo=$stopNumber&routeNo=$routeNumber" https://api.octranspo1.com/v1.2/GetNextTripsForStop > .stop.tmp
 
 routeRunning="$(cat .stop.tmp | xmllint --format - | grep \<Trips/\>)"
 
@@ -73,5 +73,5 @@ adjustedTime[2]="$(awk -F "\t" 'NR == 3 {print $1}' .time.tmp)" #..
 echo "The next bus is in: ${adjustedTime[0]} minutes" #print the time until the next bus
 
 date -d "now ${adjustedTime[0]} minutes" +'%H:%M' #print the specific time of the next bus
-date -d "now ${adjustedTime[1]} minutes" +'%H:%M' #.. 
+date -d "now ${adjustedTime[1]} minutes" +'%H:%M' #..
 date -d "now ${adjustedTime[2]} minutes" +'%H:%M' #..
