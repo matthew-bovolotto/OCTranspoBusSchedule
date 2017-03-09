@@ -1,0 +1,47 @@
+#!/bin/bash
+
+####################################################################################
+# Written by: Matthew Bovolotto
+# Date: 2017/01/20
+# OC Transpo Time Finder
+####################################################################################
+
+stopNumber=$1 #Variable for the stop number that will be taken in from the user, $1 is the first command line input variable
+routeNumber=$2 #Variable for the route number that will be taken in from the user, $2 is the second command line input variable
+
+curl -s -k -d "appID=a53c2e58&apiKey=9eaf264541013e4e6c2c040290dd0ec6&stopNo=$stopNumber&routeNo=$routeNumber" https://api.octranspo1.com/v1.2/GetNextTripsForStop > .direction-nf.tmp
+cat .direction-nf.tmp | xmllint --format - > .direction.tmp
+directionCount=$(grep -c RouteLabel .direction.tmp)
+
+if [[ $directionCount -gt 1 ]]; then
+	echo "Direction Count was greater than 1"
+	direction[1]=$(grep -m 1 RouteLabel .direction.tmp | sed 's/^.*>\([0-9a-zA-Z ]*\)<.*$/\1/g')
+	direction[2]=$(grep -m 2 RouteLabel .direction.tmp | tail -n1 | sed 's/^.*>\([0-9a-zA-Z ]*\)<.*$/\1/g')
+	echo ${direction[1]}
+	echo ${direction[2]}
+
+	echo "Which direction would you like? (1|2)"
+	read directionValue
+
+if [[ $directionValue -eq 1 ]]; then
+	echo ${direction[1]}
+	sed 's/.*\(<RouteDirection>.*<\/RouteDirection>\).*\(<RouteDirection.*<\/RouteDirection>\).*/\1/g' .direction-nf.tmp | xmllint --format -
+elif [[ $directionValue -eq 2 ]]; then
+	echo ${direction[2]}
+	sed 's/.*\(<RouteDirection>.*<\/RouteDirection>\).*\(<RouteDirection.*<\/RouteDirection>\).*/\2/g' .direction-nf.tmp | xmllint --format -
+else				
+	echo "Incorrect selection"
+fi
+
+
+
+else 
+	echo "Direction Count was 1"
+
+	direction[1]=$(grep RouteLabel .direction.tmp | sed 's/^.*>\([0-9a-zA-Z]*\)<.*$/\1/g')
+	echo ${direction[1]}
+fi
+
+
+#routeID=$(awk -F "," -v var=$routeNumber '$2==var {print $1}' OC/routes.txt)
+

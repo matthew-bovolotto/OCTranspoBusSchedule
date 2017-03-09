@@ -1,0 +1,98 @@
+<?xml version="1.0" encoding="utf-8"?>
+<soap:Envelope xmlns:soap="http://schemas.xmlsoap.org/soap/envelope/" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:xsd="http://www.w3.org/2001/XMLSchema">
+  <soap:Body>
+    <GetNextTripsForStopResponse xmlns="http://octranspo.com">
+      <GetNextTripsForStopResult>
+        <StopNo xmlns="http://tempuri.org/">3000</StopNo>
+        <StopLabel xmlns="http://tempuri.org/">MACKENZIE KING</StopLabel>
+        <Error xmlns="http://tempuri.org/"/>
+        <Route xmlns="http://tempuri.org/">
+          <RouteDirection>
+            <RouteNo>98</RouteNo>
+            <RouteLabel>Hawthorne</RouteLabel>
+            <Direction>Southbound</Direction>
+            <Error/>
+            <RequestProcessingTime>20170309151103</RequestProcessingTime>
+            <Trips>
+              <Trip>
+                <TripDestination>Hawthorne</TripDestination>
+                <TripStartTime>15:05</TripStartTime>
+                <AdjustedScheduleTime>12</AdjustedScheduleTime>
+                <AdjustmentAge>0.56</AdjustmentAge>
+                <LastTripOfSchedule>false</LastTripOfSchedule>
+                <BusType>6E - 60</BusType>
+                <Latitude>45.410625</Latitude>
+                <Longitude>-75.717988</Longitude>
+                <GPSSpeed>56.5</GPSSpeed>
+              </Trip>
+              <Trip>
+                <TripDestination>Hawthorne</TripDestination>
+                <TripStartTime>15:17</TripStartTime>
+                <AdjustedScheduleTime>23</AdjustedScheduleTime>
+                <AdjustmentAge>0.57</AdjustmentAge>
+                <LastTripOfSchedule>false</LastTripOfSchedule>
+                <BusType>4LB - DD</BusType>
+                <Latitude>45.403488</Latitude>
+                <Longitude>-75.736366</Longitude>
+                <GPSSpeed>0.5</GPSSpeed>
+              </Trip>
+              <Trip>
+                <TripDestination>Hawthorne</TripDestination>
+                <TripStartTime>15:27</TripStartTime>
+                <AdjustedScheduleTime>34</AdjustedScheduleTime>
+                <AdjustmentAge>-1</AdjustmentAge>
+                <LastTripOfSchedule>false</LastTripOfSchedule>
+                <BusType>4LB - DD</BusType>
+                <Latitude/>
+                <Longitude/>
+                <GPSSpeed/>
+              </Trip>
+            </Trips>
+          </RouteDirection>
+          <RouteDirection>
+            <RouteNo>98</RouteNo>
+            <RouteLabel>Tunney's Pasture</RouteLabel>
+            <Direction>Northbound</Direction>
+            <Error/>
+            <RequestProcessingTime>20170309151103</RequestProcessingTime>
+            <Trips>
+              <Trip>
+                <TripDestination>Lebreton</TripDestination>
+                <TripStartTime>14:31</TripStartTime>
+                <AdjustedScheduleTime>10</AdjustedScheduleTime>
+                <AdjustmentAge>0.64</AdjustmentAge>
+                <LastTripOfSchedule>false</LastTripOfSchedule>
+                <BusType>6EB - 60</BusType>
+                <Latitude>45.414593</Latitude>
+                <Longitude>-75.657117</Longitude>
+                <GPSSpeed>8.3</GPSSpeed>
+              </Trip>
+              <Trip>
+                <TripDestination>Lebreton</TripDestination>
+                <TripStartTime>14:47</TripStartTime>
+                <AdjustedScheduleTime>26</AdjustedScheduleTime>
+                <AdjustmentAge>0.62</AdjustmentAge>
+                <LastTripOfSchedule>false</LastTripOfSchedule>
+                <BusType>6EB - 60</BusType>
+                <Latitude>45.360497</Latitude>
+                <Longitude>-75.658827</Longitude>
+                <GPSSpeed>42.2</GPSSpeed>
+              </Trip>
+              <Trip>
+                <TripDestination>Lebreton</TripDestination>
+                <TripStartTime>15:04</TripStartTime>
+                <AdjustedScheduleTime>44</AdjustedScheduleTime>
+                <AdjustmentAge>0.64</AdjustmentAge>
+                <LastTripOfSchedule>false</LastTripOfSchedule>
+                <BusType>6EB - 60</BusType>
+                <Latitude>45.368213</Latitude>
+                <Longitude>-75.617631</Longitude>
+                <GPSSpeed>2.7</GPSSpeed>
+              </Trip>
+            </Trips>
+          </RouteDirection>
+        </Route>
+      </GetNextTripsForStopResult>
+    </GetNextTripsForStopResponse>
+  </soap:Body>
+</soap:Envelope>
