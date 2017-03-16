@@ -1,0 +1,23 @@
+#!/bin/bash
+
+#Testing for the 8530 stop using the 8530 stop times text file
+routeNumber=121
+stopNumber=8530
+
+times=($(grep -P $stopNumber"\t"$routeNumber OC/stoptimesparsed.txt | grep Week | awk -F "\t" '{print $2}' | sort -n))
+
+for i in ${times[@]}; do
+	hours=$(echo $i | sed 's/\([0-9]*\):.*/\1/g')
+	minutes=$(echo $i | sed 's/.*:\([0-9]*\):.*/\1/g')
+	
+	currentHours=$(date +"%H")
+	currentMinutes=$(date +"%M")
+	if [[ hours -ge currentHours ]]; then
+		if [[ minutes -ge currentMinutes ]]; then
+		break
+		fi
+	fi
+done
+echo $hours:$minutes:00
+echo "done!"
+

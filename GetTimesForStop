@@ -6,24 +6,52 @@
 # OC Transpo Time Finder
 ####################################################################################
 
-stopNumber=$1
-routeNumber=$2
+stopNumber=$1 #Variable for the stop number that will be taken in from the user, $1 is the first command line input variable
+routeNumber=$2 #Variable for the route number that will be taken in from the user, $2 is the second command line input variable
+directionNumber=$3 
 
-if [[ -z "$stopNumber" ]]; then
+if [[ -z "$stopNumber" ]]; then  #If the stop number is zero (i.e. no command line input) read in a value from the user
 	echo "Stop Number: "
 	read stopNumber
 fi
 
-if [[ -z "$routeNumber" ]]; then
+if [[ -z "$routeNumber" ]]; then  #If the route number is zero (i.e. no command line input) read in a value from the user
 	echo "Route Number: "
 	read routeNumber
+	echo "#############################################################################"
 fi
 
-validStop="$(awk -v stop="$stopNumber" -F "," '$2==stop {print $3}' ~/OCTranspo/OC/stops.txt)"
+#####################################################################################################################
+# STOP VALIDATION
+#####################################################################################################################
+
+#This block checks to make sure that the provided stop number exists in the documentation for stops
+#This is done in one AWK command that looks for the stop number through the TSV file provided by OC transpo
+#The file it searches through is named stops.txt and is located at the static location stops.txt 
+
+#In future revisions this should be switch to a directory pointer folder that will contain pointers to the files
+
+validStop="$(awk -v stop="$stopNumber" -F "," '$2==stop {print $3}' ~/OCTranspo/OC/stops.txt)" # check to make sure that the value given for the stop nubmer is valid
 if [[ -z "$validStop" ]]; then
 	echo "Invalid stop number!"
 	exit
 fi
+
+#####################################################################################################################
+# ROUTE VALIDATION
+#####################################################################################################################
+
+#This block checks to make sure that the route number provided is valid
+#This is first done by poling the OC TRANSPO server for the stop number information
+#If the server does not provide the route number specified user when the stop is polled then a message is returned saying the user selected an invalid route
+
+#The server poll includes the stop number and a request for the "GetRouteSummaryForStop" API
+
+#The valid route variable contains a value if the route number is returned
+#1. Route the check.tmp file into the xml formatter
+#2. Search for the line containing any routenumbers
+#3. Parse for the route number in the xml
+#4. Search for the original route number provided
 
 curl -s -k -d "appID=a53c2e58&apiKey=9eaf264541013e4e6c2c040290dd0ec6&stopNo=$stopNumber" https://api.octranspo1.com/v1.2/GetRouteSummaryForStop > .check.tmp
 validRoute="$(cat .check.tmp | xmllint --format - | grep -i RouteNo | sed -e 's/^.*>\([0-9]*\)<.*$/\1/g' | grep ^$routeNumber$)"
@@ -40,7 +68,48 @@ fi
 #
 ################################################################################
 
-curl -s -k -d "appID=a53c2e58&apiKey=9eaf264541013e4e6c2c040290dd0ec6&stopNo=$stopNumber&routeNo=$routeNumber" https://api.octranspo1.com/v1.2/GetNextTripsForStop > .stop.tmp
+curl -s -k -d "appID=a53c2e58&apiKey=9eaf264541013e4e6c2c040290dd0ec6&stopNo=$stopNumber&routeNo=$routeNumber" https://api.octranspo1.com/v1.2/GetNextTripsForStop > .direction-nf.tmp
+cat .direction-nf.tmp | xmllint --format - > .direction.tmp
+directionCount=$(grep -c RouteLabel .direction.tmp)
+
+if [[ $directionCount -gt 1 ]]; then
+
+if [[ -z "$directionNumber" ]]; then
+	
+	direction[1]=$(grep -m 1 RouteLabel .direction.tmp | sed "s/^.*>\(['0-9a-zA-Z ]*\)<.*$/\1/g")
+	direction[2]=$(grep -m 2 RouteLabel .direction.tmp | tail -n1 | sed "s/^.*>\(['0-9a-zA-Z ]*\)<.*$/\1/g")
+	
+	echo "(1)" ${direction[1]}
+	echo "(2)" ${direction[2]}
+	echo "Which direction would you like? (1|2)"
+	read directionValue
+else
+	directionValue=$directionNumber
+fi
+
+if [[ $directionValue -eq 1 ]]; then
+	sed 's/.*\(<RouteDirection>.*<\/RouteDirection>\).*\(<RouteDirection.*<\/RouteDirection>\).*/\1/g' .direction-nf.tmp | xmllint --format - > .stop.tmp
+elif [[ $directionValue -eq 2 ]]; then	
+	sed 's/.*\(<RouteDirection>.*<\/RouteDirection>\).*\(<RouteDirection.*<\/RouteDirection>\).*/\2/g' .direction-nf.tmp | xmllint --format - > .stop.tmp
+else
+	echo "Incorrect selection"
+	exit
+fi
+
+if [[ -z "$directionNumber" ]]; then
+echo "#############################################################################"
+fi
+
+else
+	direction[1]=$(grep RouteLabel .direction.tmp | sed 's/^.*>\([0-9a-zA-Z]*\)<.*$/\1/g')
+	cat .direction.tmp > .stop.tmp
+fi
+
+################################################################################
+#
+#
+#
+################################################################################
 
 routeRunning="$(cat .stop.tmp | xmllint --format - | grep \<Trips/\>)"
 
@@ -53,25 +122,60 @@ fi
 
 #Pass in the appID, apiKey, stop number and route number to the OC tranpo api, the api returns the next 3 times for that stop
 
-stopName="$(awk -v var="$stopNumber" -F "," '$2==var {print $3}' ~/OCTranspo/OC/stops.txt | sed -e 's/"//g' )"
+stopName="$(sed -e 's/.*StopLabel.*>\(.*\)<\/StopLabel.*/\1/g' .direction-nf.tmp)"
+tripDirection="$(cat .stop.tmp | xmllint --format - | grep RouteLabel | sed "s/^.*>\(['0-9a-zA-Z ]*\)<.*$/\1/g")"
 
-echo "Stop Name: $stopName"
-echo "Current Time: " # print the current time
-date +"%H:%M"
-
-echo "Next Busses: "
 cat .stop.tmp | xmllint --format - | grep -i adjustedscheduletime | sed -e 's/ *<\/*AdjustedScheduleTime>//g' > .time.tmp
-#rm .stop.tmp
-
-#print the scheduled delays into the time.tmp file
 
 adjustedTime[0]="$(awk -F "\t" 'NR == 1 {print $1}' .time.tmp)" #read the first line of the time.tmp file
 adjustedTime[1]="$(awk -F "\t" 'NR == 2 {print $1}' .time.tmp)" #..
 adjustedTime[2]="$(awk -F "\t" 'NR == 3 {print $1}' .time.tmp)" #..
+
+currentTime=$(date +"%H:%M")
+
+if [[ -z "$directionNumber" ]]; then
+	
+	echo "Stop Name: $stopName | Trip Direction: $tripDirection"
+	echo "Current Time: $currentTime" # print the current time
+	echo "Next Busses: "
+
+#rm .stop.tmp
+
 #rm .time.tmp
 
-echo "The next bus is in: ${adjustedTime[0]} minutes" #print the time until the next bus
+	echo "The next bus is in: ${adjustedTime[0]} minutes" #print the time until the next bus
 
-date -d "now ${adjustedTime[0]} minutes" +'%H:%M' #print the specific time of the next bus
-date -d "now ${adjustedTime[1]} minutes" +'%H:%M' #..
-date -d "now ${adjustedTime[2]} minutes" +'%H:%M' #..
+	date -d "now ${adjustedTime[0]} minutes" +'%H:%M' #print the specific time of the next bus
+	date -d "now ${adjustedTime[1]} minutes" +'%H:%M' #..
+	date -d "now ${adjustedTime[2]} minutes" +'%H:%M' #..
+
+else
+
+	times=($(grep -P $stopNumber"\t"$routeNumber OC/stoptimesparsed.txt | grep Week | awk -F "\t" '{print $2}' | sort -n))
+
+	for i in ${times[@]}; do
+	        hours=$(echo $i | sed 's/\([0-9]*\):.*/\1/g')
+	        minutes=$(echo $i | sed 's/.*:\([0-9]*\):.*/\1/g')
+
+	        currentHours=$(date +"%H")
+	        currentMinutes=$(date +"%M")
+		if [[ hours -ge currentHours ]]; then
+	                if [[ minutes -ge currentMinutes ]]; then
+	 	               break
+	                fi
+	        fi
+	done
+
+	echo "<TripData>" > .xml.tmp
+	echo -e "\t<StopName>$stopName</StopName>" >> .xml.tmp
+	echo -e "\t<TripDirection>$tripDirection</TripDirection>" >> .xml.tmp
+	echo -e "\t<CurrentTime>$currentTime</CurrentTime>" >> .xml.tmp
+	echo -e "\t<NextBusTime>$(date -d "now ${adjustedTime[0]} minutes" +'%H:%M')</NextBusTime>" >> .xml.tmp
+	echo -e "\t<ExpectedTime>$hours:$minutes</ExpectedTime>" >> .xml.tmp
+	echo -e "\t<NextBus>${adjustedTime[0]}</NextBus>" >> .xml.tmp
+	echo "</TripData>" >> .xml.tmp
+	cat .xml.tmp | xmllint --format - > .xml.tmp2
+	mv .xml.tmp2 .xml.tmp
+	cat .xml.tmp
+fi
+
